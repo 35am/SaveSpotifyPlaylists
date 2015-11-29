@@ -3,6 +3,28 @@
 include_once 'constants.php';
 
 /**
+ * Get the songId in the array given its spotifyId 
+ */
+function searchForId($songs, $spotifyId) {
+    foreach ($songs as $song) {
+        if ($spotifyId === $song[BDD_COL_SPOTIFY_ID]) {
+            return $song[BDD_COL_ID];
+        }
+    }
+    return null;
+}
+
+/**
+ * Clean string for safe SQL requests
+ */
+function secur_mysql($value) {
+    $search = array("\x00", "\n", "\r", "\\", "'", "\"", "\x1a");
+    $replace = array("\\x00", "\\n", "\\r", "\\\\", "\'", "\\\"", "\\\x1a");
+
+    return str_replace($search, $replace, $value);
+}
+
+/**
  * Return a MySQL connection
  */
 function getConnection() {
@@ -85,7 +107,7 @@ function insertSongPlaylist($bdd, $songId, $playListId) {
 }
 
 /**
- * 
+ * Return list of the first 5 songs that need to be updated
  */
 function getSongsToUpdate($bdd) {
     $retour = array(array());
@@ -105,6 +127,9 @@ function getSongsToUpdate($bdd) {
     return $retour;
 }
 
+/**
+ * Update the song with the given parameters 
+ */
 function updateSong($bdd, $songId, $name, $singer, $album) {
     try {
         $requete = "UPDATE " . BDD_TABLE_SONG . " SET " . BDD_COL_NAME . "='" . secur_mysql($name) . "', " . BDD_COL_SINGER . "='" . secur_mysql($singer) . "', " . BDD_COL_ALBUM . "='" . secur_mysql($album) . "' WHERE " . BDD_COL_ID . "='" . $songId . "';";
@@ -114,20 +139,28 @@ function updateSong($bdd, $songId, $name, $singer, $album) {
     }
 }
 
-function searchForId($songs, $spotifyId) {
-    foreach ($songs as $song) {
-        if ($spotifyId === $song[BDD_COL_SPOTIFY_ID]) {
-            return $song[BDD_COL_ID];
+/**
+ * Return songs for the given playlist
+ */
+function getPlaylistSongs($bdd, $playlistId) {
+    $retour = array(array());
+    $nb_song = 0;
+    try {
+        $requete = "SELECT COALESCE(" . BDD_COL_NAME . ", '" . CSV_EMPTY_VAL . "') AS " . BDD_COL_NAME . ", COALESCE(" . BDD_COL_SINGER . ", '" . CSV_EMPTY_VAL . "') AS " . BDD_COL_SINGER . ",  COALESCE(" . BDD_COL_ALBUM . ", '" . CSV_EMPTY_VAL . "') AS " . BDD_COL_ALBUM . ",  COALESCE(" . BDD_COL_SPOTIFY_URL . ", '" . CSV_EMPTY_VAL . "') AS " . BDD_COL_SPOTIFY_URL;
+        $requete .= " FROM " . BDD_TABLE_SONG . " s, " . BDD_TABLE_PLAYLIST_SONG . " ps WHERE s." . BDD_COL_ID . "=ps." . BDD_COL_ID_SONG . " AND ps." . BDD_COL_ID_PLAYLIST . "='" . $playlistId . "';";
+        $result = $bdd->query($requete);
+        while ($data = $result->fetch()) {
+            $retour[$nb_song][BDD_COL_NAME] = $data[BDD_COL_NAME];
+            $retour[$nb_song][BDD_COL_SINGER] = $data[BDD_COL_SINGER];
+            $retour[$nb_song][BDD_COL_ALBUM] = $data[BDD_COL_ALBUM];
+            $retour[$nb_song][BDD_COL_SPOTIFY_URL] = $data[BDD_COL_SPOTIFY_URL];
+            $nb_song++;
         }
+        $result->closeCursor();
+    } catch (Exception $e) {
+        // Treat exception
     }
-    return null;
-}
-
-function secur_mysql($value) {
-    $search = array("\x00", "\n", "\r", "\\", "'", "\"", "\x1a");
-    $replace = array("\\x00", "\\n", "\\r", "\\\\", "\'", "\\\"", "\\\x1a");
-
-    return str_replace($search, $replace, $value);
+    return $retour;
 }
 
 ?>
