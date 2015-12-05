@@ -36,7 +36,7 @@ while (1 == $continue) {
                                             }, $track[JSON_TRACK_ARTISTS])), $track[JSON_TRACK_ALBUM][JSON_TRACK_ALBUM_NAME]);
 
                     // Set update OK
-                    $songsToUpdate[array_search($spotifySongId, array_column($songsToUpdate, BDD_COL_SPOTIFY_ID))][PARAM_UPDATED] = 1;
+                    $songsToUpdate[getIndexOfSong($songsToUpdate, $spotifySongId)][PARAM_UPDATED] = 1;
             }
             }
 

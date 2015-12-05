@@ -10,6 +10,18 @@ function isAValidJSONTrack($track) {
         }
 
 /**
+ * Return the index of the song in the array
+ */
+function getIndexOfSong($songs, $spotifyId) {
+    foreach ($songs as $id => $song) {
+        if ($spotifyId === $song[BDD_COL_SPOTIFY_ID]) {
+            return $id;
+        }
+    }
+    return -1;
+}
+
+/**
  * Clean string for safe SQL requests
  */
 function secur_mysql($value) {
