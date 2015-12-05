@@ -1,12 +1,12 @@
 # SaveSpotifyPlaylists
 Backup Spotify Playlists to your database and export to CSV
 
-
-# Install
+### Install
 1. Update the files to your webserver
-2. Make sure OpenSSL is activated on your PHP conf (php.ini). It's the **extension=php_openssl** row.
-3. Play ***install.sql*** on your database
+2. Make sure OpenSSL is activated on your PHP setup (php.ini > *extension=php_openssl*).
+3. Play **install.sql** on your database
 
-
-# Create a new playlist
-```INSERT INTO playlist (name) VALUE ('YourPlaylistName');```
+### Create a new playlist
+```sql
+INSERT INTO playlist (name) VALUE ('YourPlaylistName');
+```
