@@ -65,6 +65,7 @@ if (-1 == $state) {
         <p>
             <a href="./index.php" alt="Back"><button>Back</button></a>
         </p>
+        <p style="margin-top: 50px; text-align: center;"><a href="https://github.com/35am/SaveSpotifyPlaylists" alt="GitHub">SaveSpotifyPlaylists on GitHub</a></p>
     </body>
 </html>
 
