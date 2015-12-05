@@ -29,6 +29,7 @@ CREATE TABLE `song` (
 	`spotify_id` VARCHAR(250) NULL DEFAULT NULL COLLATE 'utf8_bin',
 	`date_create` TIMESTAMP NULL DEFAULT NULL,
 	`date_update` TIMESTAMP NULL DEFAULT NULL,
+        `last_try` TIMESTAMP NULL DEFAULT NULL,
 	PRIMARY KEY (`id`)
 );
 

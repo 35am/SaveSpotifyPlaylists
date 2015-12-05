@@ -10,7 +10,6 @@ $resultStr = '';
 $continue = 1;
 while (1 == $continue) {
     // Get first 5 songs to update
-    // FIXME : If for any reason it's imposible to update 5 songs, infinite loop of the death
     $songsToUpdate = getSongsToUpdate($bdd);
 
     if (!empty($songsToUpdate[0])) {
@@ -22,11 +21,31 @@ while (1 == $continue) {
                                                 return $entry[BDD_COL_SPOTIFY_ID];
                                             }, $songsToUpdate))), true);
 
-            foreach ($json['tracks'] as $track) {
+
+            foreach ($json[JSON_TRACKS] as $track) {
+
+                // Check the JSON
+                if (isAValidJSONTrack($track)) {
+
+                    // Get the correct SpotifyID
+                    $spotifySongId = isset($track[JSON_LINKED_FROM]) ? $track[JSON_LINKED_FROM][JSON_LINKED_FROM_ID] : $track[JSON_TRACK_ID];
+
                 // Update each song with infos
-                updateSong($bdd, searchForId($songsToUpdate, $track['id']), $track['name'], implode(', ', array_map(function ($entry) {
-                                            return $entry['name'];
-                                        }, $track['artists'])), $track['album']['name']);
+                    updateSong($bdd, $spotifySongId, $track[JSON_TRACK_NAME], implode(', ', array_map(function ($entry) {
+                                                return $entry[JSON_TRACK_ARTIST_NAME];
+                                            }, $track[JSON_TRACK_ARTISTS])), $track[JSON_TRACK_ALBUM][JSON_TRACK_ALBUM_NAME]);
+
+                    // Set update OK
+                    $songsToUpdate[array_search($spotifySongId, array_column($songsToUpdate, BDD_COL_SPOTIFY_ID))][PARAM_UPDATED] = 1;
+            }
+            }
+
+
+            // Update the LAST_TRY column for songs that can't be updated
+            foreach ($songsToUpdate as $song) {
+                if (0 === $song[PARAM_UPDATED]) {
+                    updateLastTry($bdd, $song[BDD_COL_SPOTIFY_ID]);
+                }
             }
         } catch (Exception $e) {
             $resultStr .= 'Error updating ' . implode(',', array_map(function ($entry) {

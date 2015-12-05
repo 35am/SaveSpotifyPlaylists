@@ -3,16 +3,11 @@
 include_once 'constants.php';
 
 /**
- * Get the songId in the array given its spotifyId 
+ * Check is the JSON is valid for an update
  */
-function searchForId($songs, $spotifyId) {
-    foreach ($songs as $song) {
-        if ($spotifyId === $song[BDD_COL_SPOTIFY_ID]) {
-            return $song[BDD_COL_ID];
+function isAValidJSONTrack($track) {
+    return (isset($track[JSON_TRACK_ID]) || (isset($track[JSON_LINKED_FROM]) && isset($track[JSON_LINKED_FROM][JSON_LINKED_FROM_ID]))) && isset($track[JSON_TRACK_NAME]) && isset($track[JSON_TRACK_ARTISTS]) && isset($track[JSON_TRACK_ALBUM]) && isset($track[JSON_TRACK_ALBUM][JSON_TRACK_ALBUM_NAME]);
         }
-    }
-    return null;
-}
 
 /**
  * Clean string for safe SQL requests
@@ -113,10 +108,10 @@ function getSongsToUpdate($bdd) {
     $retour = array(array());
     $nb_song = 0;
     try {
-        $requete = "SELECT " . BDD_COL_ID . ", " . BDD_COL_SPOTIFY_ID . " FROM " . BDD_TABLE_SONG . " WHERE " . BDD_COL_NAME . " IS NULL LIMIT 5;";
+        $requete = "SELECT " . BDD_COL_ID . ", " . BDD_COL_SPOTIFY_ID . " FROM " . BDD_TABLE_SONG . " WHERE " . BDD_COL_NAME . " IS NULL AND (" . BDD_COL_LAST_TRY . "<=(NOW() - INTERVAL 1 DAY) OR " . BDD_COL_LAST_TRY . " IS NULL) LIMIT 5;";
         $result = $bdd->query($requete);
         while ($data = $result->fetch()) {
-            $retour[$nb_song][BDD_COL_ID] = $data[BDD_COL_ID];
+            $retour[$nb_song][PARAM_UPDATED] = 0;
             $retour[$nb_song][BDD_COL_SPOTIFY_ID] = $data[BDD_COL_SPOTIFY_ID];
             $nb_song++;
         }
@@ -130,9 +125,9 @@ function getSongsToUpdate($bdd) {
 /**
  * Update the song with the given parameters 
  */
-function updateSong($bdd, $songId, $name, $singer, $album) {
+function updateSong($bdd, $spotifyId, $name, $singer, $album) {
     try {
-        $requete = "UPDATE " . BDD_TABLE_SONG . " SET " . BDD_COL_NAME . "='" . secur_mysql($name) . "', " . BDD_COL_SINGER . "='" . secur_mysql($singer) . "', " . BDD_COL_ALBUM . "='" . secur_mysql($album) . "' WHERE " . BDD_COL_ID . "='" . $songId . "';";
+        $requete = "UPDATE " . BDD_TABLE_SONG . " SET " . BDD_COL_NAME . "='" . secur_mysql($name) . "', " . BDD_COL_SINGER . "='" . secur_mysql($singer) . "', " . BDD_COL_ALBUM . "='" . secur_mysql($album) . "' WHERE " . BDD_COL_SPOTIFY_ID . "='" . $spotifyId . "';";
         $bdd->exec($requete);
     } catch (Exception $e) {
         // Treat exception
@@ -161,6 +156,18 @@ function getPlaylistSongs($bdd, $playlistId) {
         // Treat exception
     }
     return $retour;
+}
+
+/**
+ * Update LAST_TRY column to NOW for the given SpotifyID
+ */
+function updateLastTry($bdd, $spotifyId) {
+    try {
+        $requete = "UPDATE " . BDD_TABLE_SONG . " SET " . BDD_COL_LAST_TRY . "=NOW() WHERE " . BDD_COL_SPOTIFY_ID . "='" . $spotifyId . "';";
+        $bdd->exec($requete);
+    } catch (Exception $e) {
+        // Treat exception
+    }
 }
 
 ?>
