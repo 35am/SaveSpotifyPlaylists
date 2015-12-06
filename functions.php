@@ -7,7 +7,7 @@ include_once 'constants.php';
  */
 function isAValidJSONTrack($track) {
     return (isset($track[JSON_TRACK_ID]) || (isset($track[JSON_LINKED_FROM]) && isset($track[JSON_LINKED_FROM][JSON_LINKED_FROM_ID]))) && isset($track[JSON_TRACK_NAME]) && isset($track[JSON_TRACK_ARTISTS]) && isset($track[JSON_TRACK_ALBUM]) && isset($track[JSON_TRACK_ALBUM][JSON_TRACK_ALBUM_NAME]);
-        }
+}
 
 /**
  * Return the index of the song in the array
@@ -19,16 +19,6 @@ function getIndexOfSong($songs, $spotifyId) {
         }
     }
     return -1;
-}
-
-/**
- * Clean string for safe SQL requests
- */
-function secur_mysql($value) {
-    $search = array("\x00", "\n", "\r", "\\", "'", "\"", "\x1a");
-    $replace = array("\\x00", "\\n", "\\r", "\\\\", "\'", "\\\"", "\\\x1a");
-
-    return str_replace($search, $replace, $value);
 }
 
 /**
@@ -73,7 +63,7 @@ function insertSong($bdd, $songUrl) {
     try {
         $retour = getSongByURL($bdd, $songUrl);
         if (-1 == $retour) {
-            $requete = "INSERT INTO " . BDD_TABLE_SONG . " (" . BDD_COL_SPOTIFY_URL . ", " . BDD_COL_SPOTIFY_ID . ") VALUES ('" . $songUrl . "', '" . preg_replace('#^https?://open.spotify.com/track/#i', '', $songUrl) . "');";
+            $requete = "INSERT INTO " . BDD_TABLE_SONG . " (" . BDD_COL_SPOTIFY_URL . ", " . BDD_COL_SPOTIFY_ID . ") VALUES ('" . mysql_real_escape_string($songUrl) . "', '" . mysql_real_escape_string(preg_replace('#^https?://open.spotify.com/track/#i', '', $songUrl)) . "');";
             $bdd->exec($requete);
             $retour = $bdd->lastInsertId();
         }
@@ -89,7 +79,7 @@ function insertSong($bdd, $songUrl) {
 function getSongByURL($bdd, $songUrl) {
     $retour = -1;
     try {
-        $requete = "SELECT " . BDD_COL_ID . " FROM " . BDD_TABLE_SONG . " WHERE " . BDD_COL_SPOTIFY_URL . "='" . $songUrl . "';";
+        $requete = "SELECT " . BDD_COL_ID . " FROM " . BDD_TABLE_SONG . " WHERE " . BDD_COL_SPOTIFY_URL . "='" . mysql_real_escape_string($songUrl) . "';";
         $result = $bdd->query($requete);
         if ($res = $result->fetch()) {
             $retour = $res[BDD_COL_ID];
@@ -106,7 +96,7 @@ function getSongByURL($bdd, $songUrl) {
  */
 function insertSongPlaylist($bdd, $songId, $playListId) {
     try {
-        $requete = "INSERT INTO " . BDD_TABLE_PLAYLIST_SONG . " (" . BDD_COL_ID_SONG . "," . BDD_COL_ID_PLAYLIST . ") VALUES ('" . $songId . "', '" . $playListId . "');";
+        $requete = "INSERT INTO " . BDD_TABLE_PLAYLIST_SONG . " (" . BDD_COL_ID_SONG . "," . BDD_COL_ID_PLAYLIST . ") VALUES ('" . mysql_real_escape_string($songId) . "', '" . mysql_real_escape_string($playListId) . "');";
         $bdd->exec($requete);
     } catch (Exception $e) {
         // Treat exception
@@ -139,7 +129,7 @@ function getSongsToUpdate($bdd) {
  */
 function updateSong($bdd, $spotifyId, $name, $singer, $album) {
     try {
-        $requete = "UPDATE " . BDD_TABLE_SONG . " SET " . BDD_COL_NAME . "='" . secur_mysql($name) . "', " . BDD_COL_SINGER . "='" . secur_mysql($singer) . "', " . BDD_COL_ALBUM . "='" . secur_mysql($album) . "' WHERE " . BDD_COL_SPOTIFY_ID . "='" . $spotifyId . "';";
+        $requete = "UPDATE " . BDD_TABLE_SONG . " SET " . BDD_COL_NAME . "='" . mysql_real_escape_string($name) . "', " . BDD_COL_SINGER . "='" . mysql_real_escape_string($singer) . "', " . BDD_COL_ALBUM . "='" . mysql_real_escape_string($album) . "' WHERE " . BDD_COL_SPOTIFY_ID . "='" . mysql_real_escape_string($spotifyId) . "';";
         $bdd->exec($requete);
     } catch (Exception $e) {
         // Treat exception
@@ -154,7 +144,7 @@ function getPlaylistSongs($bdd, $playlistId) {
     $nb_song = 0;
     try {
         $requete = "SELECT COALESCE(" . BDD_COL_NAME . ", '" . CSV_EMPTY_VAL . "') AS " . BDD_COL_NAME . ", COALESCE(" . BDD_COL_SINGER . ", '" . CSV_EMPTY_VAL . "') AS " . BDD_COL_SINGER . ",  COALESCE(" . BDD_COL_ALBUM . ", '" . CSV_EMPTY_VAL . "') AS " . BDD_COL_ALBUM . ",  COALESCE(" . BDD_COL_SPOTIFY_URL . ", '" . CSV_EMPTY_VAL . "') AS " . BDD_COL_SPOTIFY_URL;
-        $requete .= " FROM " . BDD_TABLE_SONG . " s, " . BDD_TABLE_PLAYLIST_SONG . " ps WHERE s." . BDD_COL_ID . "=ps." . BDD_COL_ID_SONG . " AND ps." . BDD_COL_ID_PLAYLIST . "='" . $playlistId . "';";
+        $requete .= " FROM " . BDD_TABLE_SONG . " s, " . BDD_TABLE_PLAYLIST_SONG . " ps WHERE s." . BDD_COL_ID . "=ps." . BDD_COL_ID_SONG . " AND ps." . BDD_COL_ID_PLAYLIST . "='" . mysql_real_escape_string($playlistId) . "';";
         $result = $bdd->query($requete);
         while ($data = $result->fetch()) {
             $retour[$nb_song][BDD_COL_NAME] = $data[BDD_COL_NAME];
@@ -175,7 +165,7 @@ function getPlaylistSongs($bdd, $playlistId) {
  */
 function updateLastTry($bdd, $spotifyId) {
     try {
-        $requete = "UPDATE " . BDD_TABLE_SONG . " SET " . BDD_COL_LAST_TRY . "=NOW() WHERE " . BDD_COL_SPOTIFY_ID . "='" . $spotifyId . "';";
+        $requete = "UPDATE " . BDD_TABLE_SONG . " SET " . BDD_COL_LAST_TRY . "=NOW() WHERE " . BDD_COL_SPOTIFY_ID . "='" . mysql_real_escape_string($spotifyId) . "';";
         $bdd->exec($requete);
     } catch (Exception $e) {
         // Treat exception
